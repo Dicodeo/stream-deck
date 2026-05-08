@@ -36,7 +36,7 @@ class ObsService {
       } else if (error?.statusText) {
         errorMessage = error.statusText;
       } else if (error?.code === 1006) {
-        errorMessage = "Erro 1006: Conexão recusada. Certifique-se que o OBS está aberto e o WebSocket (Porta 4455) está habilitado. Nota: Navegadores podem bloquear conexões de sites HTTPS para IPs locais sem SSL.";
+        errorMessage = "Erro 1006: Conexão recusada. 1) Certifique-se que o OBS está aberto. 2) Habilite o WebSocket (Porta 4455). 3) Se o app está em HTTPS, o navegador bloqueia conexões locais (ws://). Tente usar 'localhost' ou configure um túnel WSS (Secure WebSocket) como Ngrok.";
       } else if (error?.code) {
         errorMessage = `Código de erro: ${error.code}`;
       } else {
