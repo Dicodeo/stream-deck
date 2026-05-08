@@ -134,8 +134,9 @@ export const KeyConfigModal: React.FC<KeyConfigModalProps> = ({ button, onSave, 
                 {formData.type === 'obs' ? 'Comando OBS' : formData.type === 'ai' ? 'Prompt da IA' : formData.type === 'url' ? 'Endereço (URL)' : 'Valor / Parâmetro'}
               </label>
               {formData.type === 'sound' && (
-                <label className="text-[10px] bg-blue-600/20 text-blue-400 px-2 py-1 rounded-md cursor-pointer hover:bg-blue-600/30 transition-all font-bold uppercase">
-                  Upload Som
+                <label className="text-[10px] bg-blue-600/20 text-blue-400 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-blue-600/30 transition-all font-black uppercase flex items-center gap-1.5 border border-blue-500/20 active:scale-95 shadow-md">
+                  <Icons.Upload size={12} />
+                  Carregar Áudio Local
                   <input type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileUpload(e, 'value')} />
                 </label>
               )}
@@ -210,28 +211,39 @@ export const KeyConfigModal: React.FC<KeyConfigModalProps> = ({ button, onSave, 
 
           {/* Sound Override */}
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Som ao clicar (Upload ou URL)</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Som ao clicar (Carregar Arquivo Local)</label>
             <div className="flex gap-2">
               <input
                 type="text"
-                value={formData.soundUrl?.startsWith('data:') ? 'Arquivo Local Carregado' : (formData.soundUrl || '')}
+                value={formData.soundUrl?.startsWith('data:') ? 'Arquivo de Áudio Local' : (formData.soundUrl || '')}
                 onChange={(e) => setFormData({ ...formData, soundUrl: e.target.value })}
                 className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-                placeholder="Link para .mp3 ou upload"
+                placeholder="URL .mp3 ou carregar arquivo"
               />
-              <label className="cursor-pointer bg-white/5 hover:bg-white/10 border border-white/10 p-2 rounded-xl text-gray-300 transition-colors">
-                <Icons.Upload size={14} />
-                <input type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileUpload(e, 'soundUrl')} />
-              </label>
-              {formData.soundUrl && (
-                <button 
-                  onClick={() => setFormData({ ...formData, soundUrl: undefined })}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl"
-                >
-                  <Icons.Trash2 size={14} />
-                </button>
-              )}
+              <div className="flex gap-1">
+                <label className="cursor-pointer bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 px-3 py-2 rounded-xl text-blue-400 transition-all flex items-center gap-2 active:scale-95" title="Acessar arquivos do dispositivo">
+                  <Icons.Upload size={14} />
+                  <span className="text-[9px] font-black uppercase">Carregar</span>
+                  <input type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileUpload(e, 'soundUrl')} />
+                </label>
+                {formData.soundUrl && (
+                  <button 
+                    onClick={() => setFormData({ ...formData, soundUrl: undefined })}
+                    className="p-2 text-red-500 hover:bg-red-500/10 border border-red-500/20 rounded-xl transition-colors"
+                  >
+                    <Icons.Trash2 size={16} />
+                  </button>
+                )}
+              </div>
             </div>
+            {formData.soundUrl && !formData.soundUrl.startsWith('data:') && (
+              <p className="mt-2 text-[9px] text-gray-500 italic leading-relaxed">
+                * Dica: Use o botão "Carregar" para selecionar áudios direto das pastas do seu celular ou PC.
+              </p>
+            )}
+            <p className="mt-2 text-[9px] text-blue-400/50 leading-relaxed font-bold uppercase tracking-tighter">
+              * Apenas arquivos de áudio (.mp3, .wav, .m4v) - Limite 2MB.
+            </p>
           </div>
 
           {/* Icons & Colors Section */}

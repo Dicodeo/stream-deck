@@ -132,8 +132,9 @@ export const PageConfigModal: React.FC<PageConfigModalProps> = ({ page, onSave, 
           <div>
             <div className="flex justify-between items-center mb-3">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Ícone da Aba</label>
-              <label className="text-[10px] bg-blue-600/20 text-blue-400 px-2 py-1 rounded-md cursor-pointer hover:bg-blue-600/30 transition-all font-bold uppercase">
-                Upload
+              <label className="text-[10px] bg-blue-600/20 text-blue-400 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-blue-600/30 transition-all font-black uppercase flex items-center gap-1.5 border border-blue-500/20 active:scale-95 shadow-md">
+                <Icons.Upload size={12} />
+                Carregar Ícone Local
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
               </label>
             </div>
