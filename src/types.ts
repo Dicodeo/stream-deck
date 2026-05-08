@@ -34,5 +34,6 @@ export interface DeckState {
   currentPageIndex: number;
   rows: number;
   cols: number;
+  orientation?: 'auto' | 'portrait' | 'landscape';
   obsConfig?: ObsConfig;
 }

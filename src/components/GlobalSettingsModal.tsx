@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
 import { Logo } from './Logo';
 import { QRScanner } from './QRScanner';
+import { ConfirmModal } from './ConfirmModal';
 import { DeckState, ObsConfig } from '../types';
 
 interface GlobalSettingsModalProps {
   deck: DeckState;
   logs?: string | null;
   obsStatus: 'disconnected' | 'connecting' | 'connected';
-  onSave: (rows: number, cols: number, obsConfig?: ObsConfig) => void;
+  onSave: (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape') => void;
   onDisconnectObs: () => void;
   onClose: () => void;
 }
@@ -18,16 +19,34 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
   const [cols, setCols] = useState(deck.cols);
   const [obsAddress, setObsAddress] = useState(deck.obsConfig?.address || 'ws://127.0.0.1:4455');
   const [obsPassword, setObsPassword] = useState(deck.obsConfig?.password || '');
+  const [orientation, setOrientation] = useState<'auto' | 'portrait' | 'landscape'>(deck.orientation || 'auto');
   const [showResetSuccess, setShowResetSuccess] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const handleObsResetConnection = () => {
-    if (confirm('Resetar configurações de conexão do OBS para o padrão (localhost:4455)?')) {
-      setObsAddress('ws://127.0.0.1:4455');
-      setObsPassword('');
-      setShowResetSuccess(true);
-      setTimeout(() => setShowResetSuccess(false), 3000);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Resetar Conexão?',
+      message: 'Isso voltará o endereço para o padrão (localhost) e limpará a senha salva.',
+      onConfirm: () => {
+        setObsAddress('ws://127.0.0.1:4455');
+        setObsPassword('');
+        setShowResetSuccess(true);
+        setTimeout(() => setShowResetSuccess(false), 3000);
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleScanResult = (data: string) => {
@@ -107,6 +126,35 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
             </div>
             <p className="text-[10px] text-gray-600 italic">* Alterar o grid pode resetar a posição de alguns botões.</p>
           </div>
+
+          {/* Orientation Setting */}
+          <div className="space-y-4 pt-4 border-t border-white/5">
+            <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.2em]">Orientação do Display</h3>
+            <div className="flex gap-2">
+              {[
+                { id: 'auto', label: 'Automático', icon: Icons.Maximize },
+                { id: 'portrait', label: 'Retrato', icon: Icons.Smartphone },
+                { id: 'landscape', label: 'Paisagem', icon: Icons.Monitor }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setOrientation(opt.id as any)}
+                  className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${
+                    orientation === opt.id 
+                      ? 'bg-blue-600/20 border-blue-500 text-white shadow-lg shadow-blue-500/10' 
+                      : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'
+                  }`}
+                >
+                  <opt.icon size={18} className={orientation === opt.id ? 'text-blue-400' : 'text-gray-600'} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-500 leading-tight">
+              Controla como o grid se adapta ao tamanho da tela. "Retrato" limita a largura para telas móveis.
+            </p>
+          </div>
+
 
           {/* OBS Integration */}
           <div className="space-y-4 pt-4 border-t border-white/5">
@@ -204,9 +252,14 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
             <h3 className="text-xs font-black text-red-500 uppercase tracking-[0.2em]">Manutenção</h3>
             <button 
               onClick={() => {
-                if(confirm('Isso irá recarregar o aplicativo. Deseja continuar?')) {
-                  window.location.reload();
-                }
+                setConfirmConfig({
+                  isOpen: true,
+                  title: 'Recarregar App?',
+                  message: 'O aplicativo será reiniciado para tentar corrigir possíveis erros. Deseja continuar?',
+                  onConfirm: () => {
+                    window.location.reload();
+                  }
+                });
               }}
               className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-3 rounded-xl border border-red-500/20 transition-all text-[10px] uppercase tracking-widest active:scale-95"
             >
@@ -221,7 +274,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
 
         <div className="p-6 bg-[#252525] border-t border-white/5 flex gap-3">
           <button
-            onClick={() => onSave(rows, cols, { address: obsAddress, password: obsPassword, connected: false })}
+            onClick={() => onSave(rows, cols, { address: obsAddress, password: obsPassword, connected: false }, orientation)}
             className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest"
           >
             Salvar Tudo
@@ -234,6 +287,14 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
             onClose={() => setIsQRScannerOpen(false)} 
           />
         )}
+
+        <ConfirmModal 
+          isOpen={confirmConfig.isOpen}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          onConfirm={confirmConfig.onConfirm}
+          onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+        />
       </div>
     </div>
   );

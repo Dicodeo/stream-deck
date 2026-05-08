@@ -23,6 +23,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Logo } from './components/Logo';
+import { ConfirmModal } from './components/ConfirmModal';
 import { ActionButton, ActionType, DeckState, PageState, ObsConfig } from './types';
 import { DeckKey } from './components/DeckKey';
 import { KeyConfigModal } from './components/KeyConfigModal';
@@ -31,8 +32,8 @@ import { GlobalSettingsModal } from './components/GlobalSettingsModal';
 import { runAIMacro } from './services/geminiService';
 import { obsService } from './services/obsService';
 
-const DEFAULT_ROWS = 3;
-const DEFAULT_COLS = 5;
+const DEFAULT_ROWS = 4;
+const DEFAULT_COLS = 3;
 
 const PageIcon = ({ page, size = 18, className = "" }: { page: PageState, size?: number, className?: string }) => {
   if (page.customIconData) {
@@ -73,6 +74,7 @@ const INITIAL_STATE: DeckState = {
   currentPageIndex: 0,
   rows: DEFAULT_ROWS,
   cols: DEFAULT_COLS,
+  orientation: 'auto',
 };
 
 export default function App() {
@@ -85,6 +87,18 @@ export default function App() {
   const [obsStatus, setObsStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [isLoading, setIsLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -290,7 +304,7 @@ export default function App() {
     setEditingPageIndex(null);
   };
 
-  const handleGlobalSettingsSave = (rows: number, cols: number, obsConfig?: ObsConfig) => {
+  const handleGlobalSettingsSave = (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape') => {
     // If grid size changed, we need to regenerate or pad buttons for all pages
     const gridChanged = rows !== deck.rows || cols !== deck.cols;
     
@@ -318,6 +332,7 @@ export default function App() {
       ...deck,
       rows,
       cols,
+      orientation,
       pages: newPages,
       obsConfig
     };
@@ -351,30 +366,39 @@ export default function App() {
       return;
     }
     
-    if (!force && !window.confirm('Deseja excluir esta página permanentemente? Todos os botões configurados nela serão perdidos.')) {
+    const executeRemove = () => {
+      const newPages = deck.pages.filter((_, i) => i !== index);
+      
+      // Ajustar o índice da página atual
+      let newIndex = deck.currentPageIndex;
+      if (index === deck.currentPageIndex) {
+        newIndex = Math.max(0, index - 1);
+      } else if (index < deck.currentPageIndex) {
+        newIndex = deck.currentPageIndex - 1;
+      }
+      
+      const updatedDeck = {
+        ...deck,
+        pages: newPages,
+        currentPageIndex: newIndex
+      };
+      
+      saveConfig(updatedDeck);
+      setEditingPageIndex(null);
+      setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+    };
+
+    if (!force) {
+      setConfirmConfig({
+        isOpen: true,
+        title: 'Excluir Página?',
+        message: 'Todos os botões configurados nesta página serão perdidos permanentemente.',
+        onConfirm: executeRemove
+      });
       return;
     }
     
-    const newPages = deck.pages.filter((_, i) => i !== index);
-    
-    // Ajustar o índice da página atual
-    let newIndex = deck.currentPageIndex;
-    if (index === deck.currentPageIndex) {
-      // Se estamos excluindo a página atual, vamos para a anterior ou para a primeira disponível
-      newIndex = Math.max(0, index - 1);
-    } else if (index < deck.currentPageIndex) {
-      // Se excluimos uma página anterior à atual, o índice atual diminui
-      newIndex = deck.currentPageIndex - 1;
-    }
-    
-    const updatedDeck = {
-      ...deck,
-      pages: newPages,
-      currentPageIndex: newIndex
-    };
-    
-    saveConfig(updatedDeck);
-    setEditingPageIndex(null);
+    executeRemove();
   };
 
   const currentPage = deck.pages[deck.currentPageIndex] || deck.pages[0];
@@ -435,11 +459,16 @@ export default function App() {
 
               <button 
                 onClick={() => {
-                  if(confirm('Limpar todas as configurações?')) {
-                    saveConfig(INITIAL_STATE);
-                    localStorage.removeItem('stream_deck_config');
-                    window.location.reload();
-                  }
+                  setConfirmConfig({
+                    isOpen: true,
+                    title: 'Limpar Deck?',
+                    message: 'Isso irá apagar todas as suas páginas e configurações. Esta ação não pode ser desfeita.',
+                    onConfirm: () => {
+                      saveConfig(INITIAL_STATE);
+                      localStorage.removeItem('stream_deck_config');
+                      window.location.reload();
+                    }
+                  });
                 }}
                 className="p-2 bg-red-600/10 hover:bg-red-600 rounded-xl text-red-500 hover:text-white transition-all"
               >
@@ -528,7 +557,10 @@ export default function App() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98, y: -5 }}
                     transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    className="grid gap-2 sm:gap-3 md:gap-4 mx-auto w-full max-h-full items-center justify-center content-center no-scrollbar overflow-auto p-4"
+                    className={`grid gap-2 sm:gap-3 md:gap-4 mx-auto w-full max-h-full items-center justify-center content-center no-scrollbar overflow-auto p-4 ${
+                      deck.orientation === 'portrait' ? 'max-w-[500px]' : 
+                      deck.orientation === 'landscape' ? 'max-w-none' : ''
+                    }`}
                     style={{
                       gridTemplateColumns: `repeat(${deck.cols}, minmax(32px, 1fr))`,
                       maxWidth: '100%',
@@ -591,6 +623,14 @@ export default function App() {
           onClose={() => setIsGlobalSettingsOpen(false)}
         />
       )}
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

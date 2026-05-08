@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
+import { ConfirmModal } from './ConfirmModal';
 import { PageState } from '../types';
 
 interface PageConfigModalProps {
@@ -21,6 +22,7 @@ const EMOJI_LIST = [
 
 export const PageConfigModal: React.FC<PageConfigModalProps> = ({ page, onSave, onClose, onRemove }) => {
   const [formData, setFormData] = useState<PageState>({ ...page });
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -125,11 +127,7 @@ export const PageConfigModal: React.FC<PageConfigModalProps> = ({ page, onSave, 
         <div className="p-6 bg-[#252525] border-t border-white/5 flex gap-3">
           {onRemove && (
             <button
-              onClick={() => {
-                if(confirm('Excluir esta página permanentemente?')) {
-                  onRemove();
-                }
-              }}
+              onClick={() => setIsConfirmOpen(true)}
               className="px-4 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white rounded-xl transition-all border border-red-500/20 flex items-center justify-center"
               title="Excluir Página"
             >
@@ -149,6 +147,17 @@ export const PageConfigModal: React.FC<PageConfigModalProps> = ({ page, onSave, 
             Sair
           </button>
         </div>
+
+        <ConfirmModal 
+          isOpen={isConfirmOpen}
+          title="Excluir Página?"
+          message="Tem certeza que deseja apagar esta página e todos os seus botões? Esta ação não pode ser desfeita."
+          onConfirm={() => {
+            setIsConfirmOpen(false);
+            if (onRemove) onRemove();
+          }}
+          onCancel={() => setIsConfirmOpen(false)}
+        />
       </div>
     </div>
   );
