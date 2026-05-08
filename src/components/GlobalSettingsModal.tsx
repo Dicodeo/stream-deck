@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
 import { Logo } from './Logo';
+import { QRScanner } from './QRScanner';
 import { DeckState, ObsConfig } from '../types';
 
 interface GlobalSettingsModalProps {
@@ -18,6 +19,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
   const [obsAddress, setObsAddress] = useState(deck.obsConfig?.address || 'ws://127.0.0.1:4455');
   const [obsPassword, setObsPassword] = useState(deck.obsConfig?.password || '');
   const [showResetSuccess, setShowResetSuccess] = useState(false);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
 
   const handleObsResetConnection = () => {
     if (confirm('Resetar configurações de conexão do OBS para o padrão (localhost:4455)?')) {
@@ -26,6 +28,39 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
       setShowResetSuccess(true);
       setTimeout(() => setShowResetSuccess(false), 3000);
     }
+  };
+
+  const handleScanResult = (data: string) => {
+    try {
+      // Tenta JSON (padrão de alguns apps)
+      const parsed = JSON.parse(data);
+      if (parsed.address || parsed.host) {
+        const addr = parsed.address || (parsed.port ? `ws://${parsed.host}:${parsed.port}` : parsed.host);
+        if (addr) setObsAddress(addr);
+        if (parsed.password) setObsPassword(parsed.password);
+      } else {
+        // Se for só uma string mas JSON, talvez seja o password?
+        setObsPassword(data);
+      }
+    } catch (e) {
+      // Tenta formato pipe: address|password
+      if (data.includes('|')) {
+        const [addr, pass] = data.split('|');
+        if (addr.includes('://')) {
+          setObsAddress(addr.trim());
+          if (pass) setObsPassword(pass.trim());
+        }
+      } 
+      // Se começar com ws:// é o endereço
+      else if (data.startsWith('ws://') || data.startsWith('wss://')) {
+        setObsAddress(data.trim());
+      }
+      // Caso contrário, assume que é a senha se o endereço já estiver preenchido, ou vice-versa
+      else {
+        setObsPassword(data.trim());
+      }
+    }
+    setIsQRScannerOpen(false);
   };
 
   return (
@@ -87,6 +122,13 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
                     Desconectar
                   </button>
                 )}
+                <button 
+                  onClick={() => setIsQRScannerOpen(true)}
+                  className="text-[9px] font-black text-purple-500 px-2 py-1 bg-purple-500/10 rounded-md uppercase tracking-wider hover:bg-purple-500/20 transition-all flex items-center gap-1 active:scale-95"
+                >
+                  <Icons.QrCode size={10} />
+                  Escanear
+                </button>
                 <button 
                   onClick={handleObsResetConnection}
                   className="text-[9px] font-black text-red-500 px-2 py-1 bg-red-500/10 rounded-md uppercase tracking-wider hover:bg-red-500/20 transition-all flex items-center gap-1 active:scale-95"
@@ -185,6 +227,13 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
             Salvar Tudo
           </button>
         </div>
+
+        {isQRScannerOpen && (
+          <QRScanner 
+            onScan={handleScanResult} 
+            onClose={() => setIsQRScannerOpen(false)} 
+          />
+        )}
       </div>
     </div>
   );
