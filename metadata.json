@@ -1,0 +1,6 @@
+{
+  "name": "Virtual Stream Deck",
+  "description": "Uma central de comando virtual personalizável com macros de IA, atalhos de mídia e integração com Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

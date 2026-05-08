@@ -1,0 +1,16 @@
+{
+  "name": "Virtual Stream Deck",
+  "short_name": "StreamDeck",
+  "description": "Central de comando virtual personalizável.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5906/5906114.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
