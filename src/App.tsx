@@ -29,7 +29,7 @@ import { DeckKey } from './components/DeckKey';
 import { KeyConfigModal } from './components/KeyConfigModal';
 import { PageConfigModal } from './components/PageConfigModal';
 import { GlobalSettingsModal } from './components/GlobalSettingsModal';
-import { runAIMacro } from './services/geminiService';
+import { runAIMacro, speakText } from './services/geminiService';
 import { obsService } from './services/obsService';
 
 const DEFAULT_ROWS = 4;
@@ -237,6 +237,9 @@ export default function App() {
     switch (btn.type) {
       case 'url':
         if (btn.value) window.open(btn.value, '_blank');
+        if (btn.returnToHome) {
+          saveConfig({ ...deck, currentPageIndex: 0 });
+        }
         break;
       case 'sound':
         // If sound was already played above by soundUrl, we don't need double play
@@ -283,6 +286,13 @@ export default function App() {
       case 'media':
         console.log(`Media action triggered: ${btn.value}`);
         break;
+      case 'clock':
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const timeString = `Agora são ${hours} horas e ${minutes} minutos.`;
+        speakText(timeString, 'Zephyr'); // Using Zephyr for a clean, modern feel
+        break;
     }
   };
 
@@ -304,7 +314,40 @@ export default function App() {
     setEditingPageIndex(null);
   };
 
-  const handleGlobalSettingsSave = (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape') => {
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((e) => {
+        console.error(`Error attempting to enable full-screen mode: ${e.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }, []);
+
+  // Fullscreen trigger on first interaction if enabled
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      if (deck.fullscreen && !document.fullscreenElement) {
+        toggleFullscreen();
+      }
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+    };
+
+    if (deck.fullscreen) {
+      window.addEventListener('click', handleFirstInteraction);
+      window.addEventListener('touchstart', handleFirstInteraction);
+    }
+
+    return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+    };
+  }, [deck.fullscreen, toggleFullscreen]);
+
+  const handleGlobalSettingsSave = (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape', fullscreen?: boolean) => {
     // If grid size changed, we need to regenerate or pad buttons for all pages
     const gridChanged = rows !== deck.rows || cols !== deck.cols;
     
@@ -333,12 +376,19 @@ export default function App() {
       rows,
       cols,
       orientation,
+      fullscreen,
       pages: newPages,
       obsConfig
     };
 
     saveConfig(updatedDeck);
     setIsGlobalSettingsOpen(false);
+
+    if (fullscreen && !document.fullscreenElement) {
+      toggleFullscreen();
+    } else if (!fullscreen && document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
 
     if (obsConfig) {
       handleObsConnect(obsConfig);
@@ -488,20 +538,31 @@ export default function App() {
                   onDoubleClick={() => setEditingPageIndex(idx)}
                   className={`relative w-24 h-16 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all border duration-300 ${
                     idx === deck.currentPageIndex 
-                      ? 'bg-blue-600/20 border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.2)]' 
-                      : 'bg-[#1a1a1a] border-white/10 text-gray-500 hover:border-white/30 hover:bg-white/5'
+                      ? 'border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.2)]' 
+                      : 'border-white/10 text-gray-400/60 hover:border-white/30 hover:bg-white/5'
                   }`}
+                  style={{ 
+                    backgroundColor: idx === deck.currentPageIndex 
+                      ? (page.bgColor ? `${page.bgColor}44` : 'rgba(37, 99, 235, 0.2)')
+                      : (page.bgColor ? `${page.bgColor}11` : '#1a1a1a')
+                  }}
                 >
                   <PageIcon 
                     page={page} 
-                    className={idx === deck.currentPageIndex ? 'text-blue-400' : 'opacity-40'} 
+                    className={idx === deck.currentPageIndex ? 'text-white' : 'opacity-40'} 
                   />
-                  <span className="text-[9px] font-black uppercase tracking-tighter truncate w-full px-2 text-center">
+                  <span 
+                    className="text-[9px] font-black uppercase tracking-tighter truncate w-full px-2 text-center"
+                    style={page.fontSize ? { fontSize: `${page.fontSize}px` } : {}}
+                  >
                     {page.name}
                   </span>
                   
                   {idx === deck.currentPageIndex && (
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                    <div 
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" 
+                      style={{ backgroundColor: page.bgColor || '#3b82f6' }}
+                    />
                   )}
                 </button>
 

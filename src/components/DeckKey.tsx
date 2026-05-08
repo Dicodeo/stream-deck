@@ -71,7 +71,10 @@ export const DeckKey: React.FC<DeckKeyProps> = ({ button, onPress, onConfig }) =
           <span className="text-lg md:text-2xl relative z-10 drop-shadow-md leading-none">{button.iconName}</span>
         )}
 
-        <span className="text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-tight md:tracking-wider relative z-10 opacity-90 truncate w-full px-1.5 text-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] antialiased">
+        <span 
+          className="text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-tight md:tracking-wider relative z-10 opacity-90 truncate w-full px-1.5 text-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] antialiased"
+          style={button.fontSize ? { fontSize: `${button.fontSize}px` } : {}}
+        >
           {button.label}
         </span>
         

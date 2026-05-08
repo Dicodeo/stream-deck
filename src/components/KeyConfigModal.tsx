@@ -94,7 +94,7 @@ export const KeyConfigModal: React.FC<KeyConfigModalProps> = ({ button, onSave, 
           </button>
         </div>
 
-        <div className="p-6 space-y-6 overflow-y-auto">
+        <div className="p-6 space-y-6 overflow-y-auto overscroll-contain touch-pan-y scroll-smooth">
           {/* Label */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nome do Botão</label>
@@ -181,9 +181,29 @@ export const KeyConfigModal: React.FC<KeyConfigModalProps> = ({ button, onSave, 
                 placeholder={getPlaceholder()}
               />
             )}
+            {formData.type === 'url' && (
+              <div className="mt-4 flex items-center gap-3 bg-blue-600/5 border border-blue-500/20 p-3 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, returnToHome: !formData.returnToHome })}
+                  className={`w-10 h-5 rounded-full relative transition-colors ${formData.returnToHome ? 'bg-blue-600' : 'bg-gray-700'}`}
+                >
+                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${formData.returnToHome ? 'left-6' : 'left-1'}`} />
+                </button>
+                <div className="flex-1">
+                  <span className="block text-[10px] font-black text-white uppercase tracking-wider">Voltar ao Início</span>
+                  <span className="block text-[9px] text-gray-500 leading-tight">Retorna à página principal após abrir o link.</span>
+                </div>
+              </div>
+            )}
             {formData.type === 'webhook' && (
               <p className="mt-2 text-[9px] text-gray-500 italic leading-relaxed">
                 * Para TikTok Live Studio: Utilize a URL de um webhook configurado em seu bot de live (ex: TikFinity, LiveTools) para acionar ações externas.
+              </p>
+            )}
+            {formData.type === 'clock' && (
+              <p className="mt-2 text-[9px] text-blue-400 italic leading-relaxed">
+                * Relógio de Voz: O botão exibirá o horário em tempo real e falará as horas ao ser clicado.
               </p>
             )}
           </div>
@@ -251,6 +271,27 @@ export const KeyConfigModal: React.FC<KeyConfigModalProps> = ({ button, onSave, 
               </div>
             </div>
 
+            {/* Font Size */}
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex justify-between">
+                Tamanho da Fonte
+                <span className="text-blue-400">{formData.fontSize || 10}px</span>
+              </label>
+              <input
+                type="range"
+                min="6"
+                max="24"
+                step="1"
+                value={formData.fontSize || 10}
+                onChange={(e) => setFormData({ ...formData, fontSize: parseInt(e.target.value) })}
+                className="w-full h-2 bg-black/30 rounded-lg appearance-none cursor-pointer accent-blue-500 mb-2"
+              />
+              <div className="flex justify-between text-[8px] text-gray-600 uppercase font-black">
+                <span>Pequeno</span>
+                <span>Grande</span>
+              </div>
+            </div>
+
             {/* Emojis */}
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Emojis</label>
@@ -289,7 +330,7 @@ export const KeyConfigModal: React.FC<KeyConfigModalProps> = ({ button, onSave, 
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto pr-1">
+              <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto scrollbar-hide no-scrollbar pr-1">
                 {ICON_LIST.map((name) => {
                   const IconComp = (Icons as any)[name];
                   return (
@@ -313,14 +354,36 @@ export const KeyConfigModal: React.FC<KeyConfigModalProps> = ({ button, onSave, 
 
         <div className="p-6 bg-[#252525] border-t border-white/5 flex gap-3">
           <button
+            onClick={() => {
+              if (confirm('Deseja realmente resetar todas as configurações deste botão?')) {
+                setFormData({
+                  id: formData.id,
+                  label: '',
+                  type: 'none',
+                  value: '',
+                  iconName: 'Play',
+                  customIconData: undefined,
+                  soundUrl: undefined,
+                  bgColor: '#1a1a1a',
+                  textColor: '#ffffff',
+                  returnToHome: false
+                });
+              }
+            }}
+            className="px-4 bg-red-600/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all border border-red-500/20 flex items-center justify-center group"
+            title="Resetar Botão"
+          >
+            <Icons.RotateCcw size={20} className="group-active:rotate-180 transition-transform duration-500" />
+          </button>
+          <button
             onClick={() => onSave(formData)}
-            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95"
+            className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all shadow-lg active:scale-95 text-[10px] uppercase tracking-widest"
           >
             Salvar Alterações
           </button>
           <button
             onClick={onClose}
-            className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-xl transition-all"
+            className="flex-1 bg-white/5 hover:bg-white/10 text-white font-black py-4 rounded-xl transition-all text-[10px] uppercase tracking-widest"
           >
             Cancelar
           </button>

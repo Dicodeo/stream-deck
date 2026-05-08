@@ -10,9 +10,11 @@ export interface ActionButton {
   customIconData?: string; // Base64 data for custom image icon
   type: ActionType;
   value: string; // URL, prompt, webhook-url, obs-command, etc.
+  returnToHome?: boolean; // Return to main page after action
   soundUrl?: string; // Optional sound to play on click
   bgColor: string;
   textColor: string;
+  fontSize?: number;
 }
 
 export interface ObsConfig {
@@ -25,6 +27,8 @@ export interface PageState {
   id: string;
   name: string;
   iconName?: string;
+  bgColor?: string;
+  fontSize?: number;
   customIconData?: string;
   buttons: ActionButton[];
 }
@@ -35,5 +39,6 @@ export interface DeckState {
   rows: number;
   cols: number;
   orientation?: 'auto' | 'portrait' | 'landscape';
+  fullscreen?: boolean;
   obsConfig?: ObsConfig;
 }

@@ -9,7 +9,7 @@ interface GlobalSettingsModalProps {
   deck: DeckState;
   logs?: string | null;
   obsStatus: 'disconnected' | 'connecting' | 'connected';
-  onSave: (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape') => void;
+  onSave: (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape', fullscreen?: boolean) => void;
   onDisconnectObs: () => void;
   onClose: () => void;
 }
@@ -20,6 +20,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
   const [obsAddress, setObsAddress] = useState(deck.obsConfig?.address || 'ws://127.0.0.1:4455');
   const [obsPassword, setObsPassword] = useState(deck.obsConfig?.password || '');
   const [orientation, setOrientation] = useState<'auto' | 'portrait' | 'landscape'>(deck.orientation || 'auto');
+  const [fullscreen, setFullscreen] = useState(deck.fullscreen || false);
   const [showResetSuccess, setShowResetSuccess] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -155,6 +156,27 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
             </p>
           </div>
 
+          {/* Fullscreen Setting */}
+          <div className="space-y-4 pt-4 border-t border-white/5">
+            <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.2em]">Exibição</h3>
+            <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
+              <div className="flex items-center gap-3">
+                <Icons.Maximize2 className={fullscreen ? 'text-blue-400' : 'text-gray-600'} size={18} />
+                <div>
+                  <span className="block text-[10px] font-black text-white uppercase tracking-wider">Modo Tela Cheia</span>
+                  <span className="block text-[9px] text-gray-500">Inicia o app ocupando toda a tela.</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFullscreen(!fullscreen)}
+                className={`w-10 h-5 rounded-full relative transition-colors ${fullscreen ? 'bg-blue-600' : 'bg-gray-700'}`}
+              >
+                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${fullscreen ? 'left-6' : 'left-1'}`} />
+              </button>
+            </div>
+          </div>
+
 
           {/* OBS Integration */}
           <div className="space-y-4 pt-4 border-t border-white/5">
@@ -274,7 +296,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
 
         <div className="p-6 bg-[#252525] border-t border-white/5 flex gap-3">
           <button
-            onClick={() => onSave(rows, cols, { address: obsAddress, password: obsPassword, connected: false }, orientation)}
+            onClick={() => onSave(rows, cols, { address: obsAddress, password: obsPassword, connected: false }, orientation, fullscreen)}
             className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest"
           >
             Salvar Tudo

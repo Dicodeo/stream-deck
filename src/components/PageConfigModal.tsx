@@ -13,11 +13,22 @@ interface PageConfigModalProps {
 
 const ICON_LIST = [
   'Layers', 'Home', 'Star', 'Activity', 'Layout', 'Grid', 'Box', 'Pocket',
-  'Cpu', 'Zap', 'Flame', 'Sparkles', 'Target', 'Compass', 'Globe', 'Radio'
+  'Cpu', 'Zap', 'Flame', 'Sparkles', 'Target', 'Compass', 'Globe', 'Radio',
+  'Music', 'Video', 'Camera', 'Image', 'Mic', 'Headphones', 'Cast', 'Tv',
+  'Monitor', 'Smartphone', 'Watch', 'Pen', 'Trash2', 'Settings', 'Shield', 'Lock',
+  'Code', 'Terminal', 'Database', 'Cloud', 'Wifi', 'Bluetooth', 'Link', 'Anchor',
+  'MessageCircle', 'Mail', 'Bell', 'User', 'Users', 'Heart', 'Smile', 'Sun'
 ];
 
 const EMOJI_LIST = [
-  '🏠', '⭐', '📺', '🎮', '🎧', '🎙️', '📱', '💻', '🚀', '🛠️', '🎨', '🎵'
+  '🏠', '⭐', '📺', '🎮', '🎧', '🎙️', '📱', '💻', '🚀', '🛠️', '🎨', '🎵',
+  '📁', '📂', '🎬', '📸', '📻', '🎧', '🔋', '📡', '💡', '🔥', '✨', '🌈',
+  '🍀', '🌍', '⚡', '🤖', '👾', '🎹', '🎸', '📢', '🔔', '📅', '📝', '✅'
+];
+
+const PRESET_COLORS = [
+  '#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#db2777', 
+  '#0891b2', '#4b5563', '#1e1e1e', '#000000', '#ffffff', '#fbbf24'
 ];
 
 export const PageConfigModal: React.FC<PageConfigModalProps> = ({ page, onSave, onClose, onRemove }) => {
@@ -54,7 +65,7 @@ export const PageConfigModal: React.FC<PageConfigModalProps> = ({ page, onSave, 
           </button>
         </div>
 
-        <div className="p-6 space-y-6 overflow-y-auto">
+        <div className="p-6 space-y-6 overflow-y-auto scrollbar-hide no-scrollbar">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nome da Página</label>
             <input
@@ -64,6 +75,58 @@ export const PageConfigModal: React.FC<PageConfigModalProps> = ({ page, onSave, 
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Cor da Aba</label>
+            <div className="grid grid-cols-6 gap-2">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setFormData({ ...formData, bgColor: color })}
+                  className={`aspect-square rounded-lg border-2 transition-all ${
+                    formData.bgColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent'
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+              <div className="relative aspect-square">
+                <input
+                  type="color"
+                  value={formData.bgColor || '#2563eb'}
+                  onChange={(e) => setFormData({ ...formData, bgColor: e.target.value })}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div 
+                  className={`w-full h-full rounded-lg border-2 flex items-center justify-center text-white text-[10px] ${
+                    !PRESET_COLORS.includes(formData.bgColor || '') ? 'border-white' : 'border-white/10'
+                  }`}
+                  style={{ backgroundColor: formData.bgColor || '#333' }}
+                >
+                  <Icons.Plus size={14} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex justify-between">
+              Tamanho da Fonte
+              <span className="text-blue-400">{formData.fontSize || 9}px</span>
+            </label>
+            <input
+              type="range"
+              min="6"
+              max="16"
+              step="1"
+              value={formData.fontSize || 9}
+              onChange={(e) => setFormData({ ...formData, fontSize: parseInt(e.target.value) })}
+              className="w-full h-2 bg-black/30 rounded-lg appearance-none cursor-pointer accent-blue-500 mb-2"
+            />
+            <div className="flex justify-between text-[8px] text-gray-600 uppercase font-black">
+              <span>Pequeno</span>
+              <span>Grande</span>
+            </div>
           </div>
 
           <div>
@@ -124,25 +187,25 @@ export const PageConfigModal: React.FC<PageConfigModalProps> = ({ page, onSave, 
           </div>
         </div>
 
-        <div className="p-6 bg-[#252525] border-t border-white/5 flex gap-3">
+        <div className="p-6 bg-[#252525] border-t border-white/5 flex gap-2">
           {onRemove && (
             <button
               onClick={() => setIsConfirmOpen(true)}
-              className="px-4 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white rounded-xl transition-all border border-red-500/20 flex items-center justify-center"
+              className="px-4 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl transition-all border border-red-500/20 flex items-center justify-center"
               title="Excluir Página"
             >
-              <Icons.Trash2 size={20} />
+              <Icons.Trash2 size={18} />
             </button>
           )}
           <button
             onClick={() => onSave(formData)}
-            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95 text-sm uppercase tracking-widest"
+            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all shadow-lg active:scale-95 text-[10px] uppercase tracking-[0.2em]"
           >
             Salvar Alterações
           </button>
           <button
             onClick={onClose}
-            className="px-6 bg-white/5 hover:bg-white/10 text-gray-400 font-bold py-3 rounded-xl transition-all text-sm uppercase tracking-widest"
+            className="px-6 bg-white/5 hover:bg-white/10 text-white/50 font-black py-4 rounded-xl transition-all text-[10px] uppercase tracking-[0.2em]"
           >
             Sair
           </button>
