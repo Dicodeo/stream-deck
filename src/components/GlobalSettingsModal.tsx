@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
+import { Logo } from './Logo';
 import { DeckState, ObsConfig } from '../types';
 
 interface GlobalSettingsModalProps {
@@ -41,6 +42,13 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
         </div>
 
         <div className="p-6 space-y-8 overflow-y-auto no-scrollbar">
+          {/* Brand Identity */}
+          <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-blue-600/10 to-transparent rounded-[32px] border border-blue-500/10 mb-2 shadow-inner">
+            <Logo size="lg" className="mb-4" />
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">Virtual <span className="text-blue-500">Stream Deck</span></h2>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] mt-1">Sua Central de Comando</p>
+          </div>
+
           {/* Grid Configuration */}
           <div className="space-y-4">
             <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.2em]">Layout do Grid</h3>

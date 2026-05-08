@@ -22,6 +22,7 @@ import {
   sortableKeyboardCoordinates,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
+import { Logo } from './components/Logo';
 import { ActionButton, ActionType, DeckState, PageState, ObsConfig } from './types';
 import { DeckKey } from './components/DeckKey';
 import { KeyConfigModal } from './components/KeyConfigModal';
@@ -391,13 +392,17 @@ export default function App() {
       <div className="relative z-10 flex flex-col h-[100dvh] overflow-hidden">
         {/* Mobile-Friendly Header */}
         <header className="px-4 md:px-8 py-3 md:py-6 flex flex-col sm:flex-row justify-between items-center bg-black/40 border-b border-white/5 backdrop-blur-xl gap-3 sticky top-0 z-40 shrink-0">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform rotate-3 shrink-0">
-              <Icons.LayoutGrid className="text-white" size={20} />
-            </div>
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <Logo size="md" />
             <div className="flex-1">
-              <h1 className="text-base md:text-xl font-black tracking-[-0.05em] text-white uppercase italic leading-none">Ultra Stream Deck</h1>
-              <p className="text-[8px] md:text-[10px] font-bold text-blue-500/80 uppercase tracking-[0.2em] mt-1">Gemini AI Assistant</p>
+              <h1 className="text-lg md:text-xl font-black tracking-[-0.05em] text-white uppercase italic leading-none flex items-center gap-2">
+                Virtual <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Stream Deck</span>
+              </h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[8px] md:text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Core v2.5</span>
+                <span className="w-1 h-1 bg-white/20 rounded-full" />
+                <span className="text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-[0.1em]">AI Powered</span>
+              </div>
             </div>
             
             {/* Mobile Settings Icon */}
