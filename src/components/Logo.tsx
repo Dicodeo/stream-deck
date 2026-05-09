@@ -19,22 +19,22 @@ export const Logo: React.FC<LogoProps> = ({ className = "", size = 'md' }) => {
     <div className={`flex items-center gap-3 ${className}`}>
       <div className={`relative ${config.container} flex items-center justify-center shrink-0`}>
         {/* Glow effect */}
-        <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse" />
+        <div className="absolute inset-0 bg-[#00f3ff]/20 blur-xl rounded-full animate-pulse" />
         
         {/* Logo Body */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] transform rotate-3" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#00f3ff] via-[#bc13fe] to-purple-800 rounded-xl shadow-[0_0_20px_rgba(0,243,255,0.4)] transform rotate-3" />
         
         {/* Inner Border */}
-        <div className="absolute inset-[1px] bg-black/20 rounded-[10px] backdrop-blur-sm" />
+        <div className="absolute inset-[1px] bg-black/40 rounded-[10px] backdrop-blur-sm" />
         
         {/* Icon */}
         <Icons.LayoutGrid 
           size={config.icon} 
-          className="relative z-10 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in duration-500" 
+          className="relative z-10 text-white drop-shadow-[0_0_8px_rgba(0,243,255,0.8)] animate-in fade-in zoom-in duration-500" 
         />
-
+ 
         {/* Accent Lightning */}
-        <div className="absolute -top-1 -right-1 z-20 bg-yellow-400 rounded-full p-0.5 shadow-lg shadow-yellow-400/40">
+        <div className="absolute -top-1 -right-1 z-20 bg-[#00f3ff] rounded-full p-0.5 shadow-lg shadow-[#00f3ff]/50">
           <Icons.Zap size={8} className="text-black fill-current" />
         </div>
       </div>

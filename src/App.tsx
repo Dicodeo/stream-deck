@@ -55,6 +55,7 @@ const generateBlankButtons = (rows: number, cols: number, pageId: string): Actio
     iconName: 'Layers',
     type: 'none',
     value: '',
+    fontSize: 12,
     bgColor: '#1a1a1a',
     textColor: '#ffffff',
   }));
@@ -63,29 +64,104 @@ const INITIAL_PAGE_ID = 'page-1';
 const INITIAL_BUTTONS = generateBlankButtons(DEFAULT_ROWS, DEFAULT_COLS, INITIAL_PAGE_ID);
 
 // Pre-fill some defaults for demo
-INITIAL_BUTTONS[0] = { ...INITIAL_BUTTONS[0], label: 'Youtube', type: 'url', value: 'https://youtube.com', iconName: 'Youtube', bgColor: '#FF0000' };
-INITIAL_BUTTONS[1] = { ...INITIAL_BUTTONS[1], label: 'Google', type: 'url', value: 'https://google.com', iconName: 'Globe', bgColor: '#4285F4' };
-INITIAL_BUTTONS[2] = { ...INITIAL_BUTTONS[2], label: 'Gemini IA', type: 'ai', value: 'O que você pode fazer por mim hoje?', iconName: 'Zap', bgColor: '#8E24AA' };
-INITIAL_BUTTONS[3] = { ...INITIAL_BUTTONS[3], label: 'Relógio', type: 'clock', value: '', iconName: 'Clock', bgColor: '#333333' };
-INITIAL_BUTTONS[4] = { ...INITIAL_BUTTONS[4], label: 'Mídia Play', type: 'media', value: 'play', iconName: 'Play', bgColor: '#4CAF50' };
+INITIAL_BUTTONS[0] = { ...INITIAL_BUTTONS[0], label: 'Youtube', type: 'url', value: 'https://youtube.com', iconName: 'Youtube', bgColor: '#FF0000', fontSize: 12 };
+INITIAL_BUTTONS[1] = { ...INITIAL_BUTTONS[1], label: 'Google', type: 'url', value: 'https://google.com', iconName: 'Globe', bgColor: '#4285F4', fontSize: 12 };
+INITIAL_BUTTONS[2] = { ...INITIAL_BUTTONS[2], label: 'Gemini IA', type: 'ai', value: 'O que você pode fazer por mim hoje?', iconName: 'Zap', bgColor: '#8E24AA', fontSize: 12 };
+INITIAL_BUTTONS[3] = { ...INITIAL_BUTTONS[3], label: 'Relógio', type: 'clock', value: '', iconName: 'Clock', bgColor: '#333333', fontSize: 12 };
+INITIAL_BUTTONS[4] = { ...INITIAL_BUTTONS[4], label: 'Mídia Play', type: 'media', value: 'play', iconName: 'Play', bgColor: '#4CAF50', fontSize: 12 };
 
 const INITIAL_STATE: DeckState = {
+  id: 'profile-default',
+  name: 'Principal',
   pages: [{ id: INITIAL_PAGE_ID, name: 'Principal', buttons: INITIAL_BUTTONS }],
   currentPageIndex: 0,
   rows: DEFAULT_ROWS,
   cols: DEFAULT_COLS,
   orientation: 'auto',
+  audioEnabled: true,
+  audioVolume: 0.3,
+  lastUpdated: Date.now(),
+};
+
+// Simple audio feedback hook
+const useSoundFeedback = (enabled: boolean, volume: number) => {
+  const playSound = useCallback((type: 'click' | 'success' | 'toggle' | 'error') => {
+    if (!enabled) return;
+    
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    const now = audioContext.currentTime;
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(volume, now + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    
+    switch(type) {
+      case 'click':
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, now);
+        oscillator.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+        break;
+      case 'success':
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(600, now);
+        oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+        break;
+      case 'toggle':
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(200, now);
+        oscillator.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+        break;
+      case 'error':
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(150, now);
+        oscillator.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+        break;
+    }
+    
+    oscillator.start();
+    oscillator.stop(now + 0.2);
+  }, [enabled, volume]);
+
+  return playSound;
 };
 
 export default function App() {
   const [deck, setDeck] = useState<DeckState>(INITIAL_STATE);
+  const [profiles, setProfiles] = useState<DeckState[]>([INITIAL_STATE]);
+  const [activeProfileId, setActiveProfileId] = useState<string>(INITIAL_STATE.id);
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingPageIndex, setEditingPageIndex] = useState<number | null>(null);
   const [isGlobalSettingsOpen, setIsGlobalSettingsOpen] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [obsStatus, setObsStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(window.navigator.onLine);
+
+  const playSound = useSoundFeedback(deck.audioEnabled || false, deck.audioVolume || 0.3);
+
+  // Sync with online/offline state
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Initial load simulation for splash screen & pre-loading
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -120,13 +196,12 @@ export default function App() {
   // Load from LocalStorage
   useEffect(() => {
     const sanitizeConfig = (rawDeck: any): DeckState => {
-      if (!rawDeck.pages) return rawDeck;
+      if (!rawDeck.pages) return { ...INITIAL_STATE, ...rawDeck };
       
       const newPages = rawDeck.pages.map((page: PageState) => {
         const seenIds = new Set<string>();
         const buttons = page.buttons.map((btn, i) => {
           let id = btn.id;
-          // If ID is missing, duplicated, or looks like the old non-unique format, regenerate
           if (!id || seenIds.has(id)) {
             id = `btn-${page.id}-${i}-${Math.random().toString(36).substring(2, 7)}`;
           }
@@ -136,37 +211,98 @@ export default function App() {
         return { ...page, buttons };
       });
       
-      return { ...rawDeck, pages: newPages };
+      return { 
+        ...rawDeck, 
+        id: rawDeck.id || `profile-${Math.random().toString(36).substring(2, 7)}`,
+        name: rawDeck.name || 'Nova Configuração',
+        pages: newPages 
+      };
     };
 
-    const saved = localStorage.getItem('stream_deck_config');
+    const saved = localStorage.getItem('stream_deck_config_v2');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        
-        // Migration logic: if it's the old format (flat buttons), convert to pages
-        if (parsed.buttons && !parsed.pages) {
-          const migrated: DeckState = sanitizeConfig({
-            pages: [{ id: 'page-migrated', name: 'Principal', buttons: parsed.buttons }],
-            currentPageIndex: 0,
-            rows: parsed.rows || DEFAULT_ROWS,
-            cols: parsed.cols || DEFAULT_COLS,
-          });
-          setDeck(migrated);
-          localStorage.setItem('stream_deck_config', JSON.stringify(migrated));
-        } else if (parsed.pages) {
-          const sanitized = sanitizeConfig(parsed);
-          setDeck(sanitized);
-          // Try auto connect OBS if configured
-          if (sanitized.obsConfig?.address) {
-            handleObsConnect(sanitized.obsConfig);
+        if (parsed.profiles && parsed.activeProfileId) {
+          const sanitizedProfiles = parsed.profiles.map(sanitizeConfig);
+          setProfiles(sanitizedProfiles);
+          setActiveProfileId(parsed.activeProfileId);
+          const active = sanitizedProfiles.find((p: any) => p.id === parsed.activeProfileId) || sanitizedProfiles[0];
+          setDeck(active);
+          
+          if (active.obsConfig?.address) {
+            handleObsConnect(active.obsConfig);
           }
         }
       } catch (e) {
         console.error("Failed to load config", e);
       }
+    } else {
+      // Legacy support check
+      const legacySaved = localStorage.getItem('stream_deck_config');
+      if (legacySaved) {
+        try {
+          const parsed = JSON.parse(legacySaved);
+          const sanitized = sanitizeConfig(parsed);
+          const initialProfiles = [sanitized];
+          setProfiles(initialProfiles);
+          setActiveProfileId(sanitized.id);
+          setDeck(sanitized);
+          saveAll(initialProfiles, sanitized.id);
+        } catch (e) {}
+      }
     }
   }, []);
+
+  const saveAll = useCallback((newProfiles: DeckState[], activeId: string) => {
+    localStorage.setItem('stream_deck_config_v2', JSON.stringify({
+      profiles: newProfiles,
+      activeProfileId: activeId
+    }));
+  }, []);
+
+  const saveConfig = useCallback((newDeck: DeckState) => {
+    setDeck(newDeck);
+    setProfiles(prev => {
+      const updated = prev.map(p => p.id === newDeck.id ? { ...newDeck, lastUpdated: Date.now() } : p);
+      saveAll(updated, newDeck.id);
+      return updated;
+    });
+  }, [saveAll]);
+
+  const switchProfile = (profileId: string) => {
+    const target = profiles.find(p => p.id === profileId);
+    if (target) {
+      playSound('toggle');
+      setActiveProfileId(profileId);
+      setDeck(target);
+      saveAll(profiles, profileId);
+    }
+  };
+
+  const createProfile = (name: string) => {
+    playSound('success');
+    const newProfile: DeckState = {
+      ...INITIAL_STATE,
+      id: `profile-${Date.now()}`,
+      name: name || `Perfil ${profiles.length + 1}`,
+      lastUpdated: Date.now()
+    };
+    const newProfiles = [...profiles, newProfile];
+    setProfiles(newProfiles);
+    switchProfile(newProfile.id);
+  };
+
+  const deleteProfile = (profileId: string) => {
+    if (profiles.length <= 1) return;
+    const newProfiles = profiles.filter(p => p.id !== profileId);
+    setProfiles(newProfiles);
+    if (activeProfileId === profileId) {
+      switchProfile(newProfiles[0].id);
+    } else {
+      saveAll(newProfiles, activeProfileId);
+    }
+  };
 
   const handleObsConnect = async (config: ObsConfig) => {
     setObsStatus('connecting');
@@ -212,17 +348,6 @@ export default function App() {
     }
   };
 
-  // Timer for clock buttons
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const saveConfig = useCallback((newDeck: DeckState) => {
-    setDeck(newDeck);
-    localStorage.setItem('stream_deck_config', JSON.stringify(newDeck));
-  }, []);
-
   const handleKeyPress = async (id: string) => {
     const currentPage = deck.pages[deck.currentPageIndex];
     const btn = currentPage?.buttons.find(b => b.id === id);
@@ -262,6 +387,10 @@ export default function App() {
         }
         break;
       case 'ai':
+        if (!isOnline) {
+          setAiResponse("A IA requer conexão com a internet. Por favor, verifique sua conexão.");
+          return;
+        }
         setIsLoading(true);
         setAiResponse(null);
         const result = await runAIMacro(btn.value);
@@ -291,7 +420,11 @@ export default function App() {
         const hours = now.getHours();
         const minutes = now.getMinutes();
         const timeString = `Agora são ${hours} horas e ${minutes} minutos.`;
-        speakText(timeString, 'Zephyr'); // Using Zephyr for a clean, modern feel
+        if (isOnline) {
+          speakText(timeString, 'Zephyr'); // Using Zephyr for a clean, modern feel
+        } else {
+          setAiResponse(timeString);
+        }
         break;
     }
   };
@@ -347,7 +480,15 @@ export default function App() {
     };
   }, [deck.fullscreen, toggleFullscreen]);
 
-  const handleGlobalSettingsSave = (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape', fullscreen?: boolean) => {
+  const handleGlobalSettingsSave = (
+    rows: number, 
+    cols: number, 
+    obsConfig?: ObsConfig, 
+    orientation?: 'auto' | 'portrait' | 'landscape', 
+    fullscreen?: boolean,
+    audioEnabled: boolean = true,
+    audioVolume: number = 0.3
+  ) => {
     // If grid size changed, we need to regenerate or pad buttons for all pages
     const gridChanged = rows !== deck.rows || cols !== deck.cols;
     
@@ -377,6 +518,8 @@ export default function App() {
       cols,
       orientation,
       fullscreen,
+      audioEnabled,
+      audioVolume,
       pages: newPages,
       obsConfig
     };
@@ -456,7 +599,51 @@ export default function App() {
   const editingPage = editingPageIndex !== null ? deck.pages[editingPageIndex] : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-gray-200 font-sans selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#0a0a0a] text-gray-200 font-sans selection:bg-blue-500/30 overflow-hidden">
+      {/* Splash Screen */}
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div 
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1, filter: 'blur(20px)' }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050505] gap-8"
+          >
+            <div className="absolute inset-0 bg-[#050505] opacity-90" />
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.05, 1],
+                rotate: [0, 5, -5, 0]
+              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="relative z-10"
+            >
+              <div className="w-24 h-24 bg-gradient-to-br from-[#00f3ff] to-[#bc13fe] rounded-[32px] shadow-[0_0_50px_rgba(0,243,255,0.4)] flex items-center justify-center transform rotate-12">
+                <Icons.Zap fill="white" size={40} className="text-white -rotate-12" />
+              </div>
+              <div className="absolute -inset-4 bg-cyan-500/20 blur-2xl rounded-full -z-10 animate-pulse" />
+            </motion.div>
+            
+            <div className="flex flex-col items-center gap-4 relative z-10">
+              <h1 className="text-3xl font-black text-white uppercase italic tracking-[0.5em] translate-x-[0.25em]">
+                Deck<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00f3ff] to-[#bc13fe]">Flow</span>
+              </h1>
+              <div className="w-40 h-[2px] bg-white/5 rounded-full overflow-hidden relative">
+                <motion.div 
+                  initial={{ left: '-100%' }}
+                  animate={{ left: '100%' }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#00f3ff] to-transparent"
+                />
+              </div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] animate-pulse">
+                {isOnline ? 'Iniciando Dashboard...' : 'Iniciando em Modo Off-line...'}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Background Ambience */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full" />
@@ -465,15 +652,15 @@ export default function App() {
 
       <div className="relative z-10 flex flex-col h-[100dvh] overflow-hidden">
         {/* Mobile-Friendly Header */}
-        <header className="px-4 md:px-8 py-3 md:py-6 flex flex-col sm:flex-row justify-between items-center bg-black/40 border-b border-white/5 backdrop-blur-xl gap-3 sticky top-0 z-40 shrink-0">
+        <header className="px-4 md:px-8 py-3 md:py-6 flex flex-col sm:flex-row justify-between items-center bg-[#080808]/80 border-b border-white/10 backdrop-blur-3xl gap-3 sticky top-0 z-40 shrink-0">
           <div className="flex items-center gap-4 w-full sm:w-auto">
             <Logo size="md" />
             <div className="flex-1">
               <h1 className="text-lg md:text-xl font-black tracking-[-0.05em] text-white uppercase italic leading-none flex items-center gap-2">
-                Virtual <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Stream Deck</span>
+                Virtual <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00f3ff] to-[#bc13fe]">Stream Deck</span>
               </h1>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[8px] md:text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Core v2.5</span>
+                <span className="text-[8px] md:text-[10px] font-black text-[#00f3ff] uppercase tracking-[0.2em] drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]">Core v2.5</span>
                 <span className="w-1 h-1 bg-white/20 rounded-full" />
                 <span className="text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-[0.1em]">AI Powered</span>
               </div>
@@ -488,6 +675,13 @@ export default function App() {
           </div>
           
           <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-6 w-full sm:w-auto">
+            <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full border transition-all ${isOnline ? 'bg-white/5 border-white/10' : 'bg-red-500/10 border-red-500/30'} shrink-0`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+              <span className={`text-[8px] md:text-[9px] font-black uppercase ${isOnline ? 'text-gray-400' : 'text-red-400'}`}>
+                {isOnline ? 'Online' : 'Off-line'}
+              </span>
+            </div>
+
             <div className="flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-full border border-white/10 shrink-0">
               <div className={`w-1.5 h-1.5 rounded-full ${obsStatus === 'connected' ? 'bg-green-500' : obsStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'}`} />
               <span className="text-[8px] md:text-[9px] font-black uppercase text-gray-400">OBS</span>
@@ -528,132 +722,178 @@ export default function App() {
           </div>
         </header>
 
-        {/* Page Tabs */}
-        <div className="px-4 md:px-8 py-3 bg-black/40 border-b border-white/5 overflow-x-auto no-scrollbar shrink-0">
-          <div className="flex items-center gap-2 md:gap-3">
-            {deck.pages.map((page, idx) => (
-              <div key={page.id} className="relative group flex-shrink-0">
-                <button
-                  onClick={() => saveConfig({ ...deck, currentPageIndex: idx })}
-                  onDoubleClick={() => setEditingPageIndex(idx)}
-                  className={`relative w-24 h-16 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all border duration-300 ${
-                    idx === deck.currentPageIndex 
-                      ? 'border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.2)]' 
-                      : 'border-white/10 text-gray-400/60 hover:border-white/30 hover:bg-white/5'
-                  }`}
-                  style={{ 
-                    backgroundColor: idx === deck.currentPageIndex 
-                      ? (page.bgColor ? `${page.bgColor}44` : 'rgba(37, 99, 235, 0.2)')
-                      : (page.bgColor ? `${page.bgColor}11` : '#1a1a1a')
-                  }}
-                >
-                  <PageIcon 
-                    page={page} 
-                    className={idx === deck.currentPageIndex ? 'text-white' : 'opacity-40'} 
-                  />
-                  <span 
-                    className="text-[9px] font-black uppercase tracking-tighter truncate w-full px-2 text-center"
-                    style={page.fontSize ? { fontSize: `${page.fontSize}px` } : {}}
-                  >
-                    {page.name}
-                  </span>
-                  
-                  {idx === deck.currentPageIndex && (
-                    <div 
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" 
-                      style={{ backgroundColor: page.bgColor || '#3b82f6' }}
-                    />
-                  )}
-                </button>
-
-                {/* Tab Actions */}
-                <div className={`absolute -top-2 -right-2 flex gap-1 transition-transform z-20 ${
-                  idx === deck.currentPageIndex ? 'scale-100' : 'scale-0 group-hover:scale-100'
-                }`}>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setEditingPageIndex(idx); }}
-                    className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-500 transition-colors"
-                    title="Configurar Página"
-                  >
-                    <Icons.Edit3 size={10} />
-                  </button>
-                  {deck.pages.length > 1 && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); removePage(idx); }}
-                      className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-500 transition-colors"
-                      title="Excluir"
-                    >
-                      <Icons.X size={10} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            
-            <button 
-              onClick={addPage}
-              className="w-16 h-16 rounded-2xl border border-dashed border-white/20 text-gray-600 hover:text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center gap-1"
-            >
-              <Icons.Plus size={20} />
-              <span className="text-[8px] font-bold uppercase">Novo</span>
-            </button>
-          </div>
-        </div>
-
         {/* Main Interface */}
-        <main className="flex-1 flex flex-col p-2 md:p-6 gap-3 md:gap-6 overflow-hidden">
+        <main className="flex-1 flex flex-col p-2 sm:p-4 md:p-6 lg:p-10 gap-4 md:gap-10 overflow-hidden relative">
           
           {/* Deck Grid Section */}
-          <section className="flex-1 flex items-center justify-center bg-black/40 rounded-[24px] md:rounded-[40px] border border-white/10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] p-1 md:p-8 relative overflow-hidden">
-            <div className="w-full h-full flex items-center justify-center overflow-hidden">
+          <section className="flex-1 flex items-center justify-center bg-matte-black/40 rounded-[24px] sm:rounded-[32px] md:rounded-[50px] border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.9)] p-2 md:py-6 md:px-12 relative overflow-hidden backdrop-blur-2xl min-h-0">
+            {/* Subtle background glow */}
+            <div className="absolute top-0 left-1/4 w-1/2 h-1/2 bg-[#00f3ff]/5 blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-0 right-1/4 w-1/2 h-1/2 bg-[#bc13fe]/5 blur-[120px] pointer-events-none" />
+            
+            <div className="w-full h-full flex items-center justify-center overflow-hidden z-10">
               <DndContext 
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
               >
-                <AnimatePresence mode="wait">
-                  <motion.div 
-                    key={deck.currentPageIndex}
-                    initial={{ opacity: 0, scale: 0.98, y: 5 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.98, y: -5 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    className={`grid gap-2 sm:gap-3 md:gap-4 mx-auto w-full max-h-full items-center justify-center content-center no-scrollbar overflow-auto p-4 ${
-                      deck.orientation === 'portrait' ? 'max-w-[500px]' : 
-                      deck.orientation === 'landscape' ? 'max-w-none' : ''
-                    }`}
-                    style={{
-                      gridTemplateColumns: `repeat(${deck.cols}, minmax(32px, 1fr))`,
-                      maxWidth: '100%',
-                      width: `calc(min(100% - 1rem, ${deck.cols * 100}px))`
-                    }}
-                  >
-                    <SortableContext 
-                      items={currentPage.buttons.map(b => b.id)}
-                      strategy={rectSortingStrategy}
+                <AnimatePresence mode="wait" initial={false}>
+                  {isLoading ? (
+                    <div 
+                      key="skeleton"
+                      className="grid gap-4 mx-auto w-full p-8"
+                      style={{
+                        gridTemplateColumns: `repeat(${deck.cols}, minmax(32px, 1fr))`,
+                        maxWidth: '100%',
+                        width: `calc(min(100% - 1rem, ${deck.cols * 110}px))`
+                      }}
                     >
-                      {currentPage.buttons.map((btn) => (
-                        <DeckKey 
-                          key={btn.id} 
-                          button={btn.type === 'clock' ? { ...btn, label: currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } : btn} 
-                          onPress={handleKeyPress}
-                          onConfig={(id) => setEditingId(id)}
+                      {Array.from({ length: deck.cols * deck.rows }).map((_, i) => (
+                        <div 
+                          key={i} 
+                          className="w-full aspect-[1.3/1] bg-white/[0.03] rounded-[24px] animate-pulse border border-white/5"
+                          style={{ animationDelay: `${i * 0.05}s` }}
                         />
                       ))}
-                    </SortableContext>
-                  </motion.div>
+                    </div>
+                  ) : (
+                    <motion.div 
+                      key={deck.currentPageIndex}
+                      initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)', y: 20 }}
+                      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', y: 0 }}
+                      exit={{ opacity: 0, scale: 1.05, filter: 'blur(10px)', y: -20 }}
+                      transition={{ 
+                        duration: 0.3, 
+                        ease: [0.16, 1, 0.3, 1]
+                      }}
+                      className={`grid gap-1.5 sm:gap-2 md:gap-4 mx-auto w-full h-full max-h-full items-center justify-center content-center no-scrollbar overflow-auto p-2 sm:p-4 md:p-8 will-change-transform ${
+                        deck.orientation === 'portrait' ? 'max-w-[480px]' : 
+                        deck.orientation === 'landscape' ? 'max-w-none' : ''
+                      }`}
+                      style={{
+                        gridTemplateColumns: `repeat(${deck.cols}, minmax(0, 1fr))`,
+                        maxWidth: '100%',
+                        width: `calc(min(100%, ${deck.cols * 120}px))`
+                      }}
+                    >
+                      <SortableContext 
+                        items={currentPage.buttons.map(b => b.id)} 
+                        strategy={rectSortingStrategy}
+                      >
+                        {currentPage.buttons.map((btn, i) => (
+                          <motion.div
+                            key={btn.id}
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.01, duration: 0.3 }}
+                          >
+                            <DeckKey 
+                              button={btn.type === 'clock' ? { ...btn, label: currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } : btn} 
+                              onPress={(id) => {
+                                playSound('click');
+                                handleKeyPress(id);
+                              }}
+                              onConfig={(id) => setEditingId(id)}
+                            />
+                          </motion.div>
+                        ))}
+                      </SortableContext>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </DndContext>
             </div>
 
             {/* Grid size markers */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-4 text-[8px] md:text-[10px] text-gray-500 uppercase tracking-widest font-black opacity-30 whitespace-nowrap bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-4 text-[7px] md:text-[9px] text-gray-500 uppercase tracking-[0.3em] font-black opacity-40 whitespace-nowrap bg-white/5 px-4 py-1.5 rounded-full border border-white/5 backdrop-blur-md">
               <span>{deck.cols} COLUNAS</span>
-              <span className="text-blue-500">•</span>
+              <span className="w-1 h-1 bg-blue-500 rounded-full my-auto" />
               <span>{deck.rows} LINHAS</span>
             </div>
           </section>
         </main>
+
+        {/* Floating Bottom Navigation Dock */}
+        <nav className="fixed bottom-2 left-1/2 -translate-x-1/2 z-50 w-full max-w-fit px-2 sm:px-4 pointer-events-none">
+          <div className="bg-[#080808]/90 backdrop-blur-3xl border border-white/10 p-1.5 sm:p-2 rounded-2xl sm:rounded-[28px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] flex items-center gap-2 pointer-events-auto">
+            <div className="flex items-center gap-1 sm:gap-2 px-1 max-w-[90vw] overflow-x-auto no-scrollbar py-1">
+              {deck.pages.map((page, idx) => (
+                <div key={page.id} className="relative group shrink-0">
+                  <motion.button
+                    whileHover={{ scale: 1.05, y: -4 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => saveConfig({ ...deck, currentPageIndex: idx })}
+                    onDoubleClick={() => setEditingPageIndex(idx)}
+                    className={`relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl sm:rounded-[24px] md:rounded-[28px] flex flex-col items-center justify-center gap-1.5 transition-all border duration-500 ${
+                      idx === deck.currentPageIndex 
+                        ? 'border-[#00f3ff]/40 text-white shadow-[0_0_25px_rgba(0,243,255,0.25)] bg-[#00f3ff]/10' 
+                        : 'border-white/5 text-gray-500/50 hover:text-gray-300 hover:border-white/10 hover:bg-white/5'
+                    }`}
+                  >
+                    <PageIcon 
+                      page={page} 
+                      size={28}
+                      className={idx === deck.currentPageIndex ? 'text-[#00f3ff] drop-shadow-glow-blue scale-110' : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80'} 
+                    />
+                    <span 
+                      className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] truncate w-full px-2 text-center transition-opacity duration-300 ${idx === deck.currentPageIndex ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-40'}`}
+                    >
+                      {page.name}
+                    </span>
+                    
+                    {idx === deck.currentPageIndex && (
+                      <motion.div 
+                        layoutId="activeTabIndicator"
+                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-1.5 rounded-full shadow-[0_0_15px_rgba(0,243,255,1)]" 
+                        style={{ backgroundColor: page.bgColor || '#00f3ff' }}
+                      />
+                    )}
+                  </motion.button>
+
+                  {/* Tab Actions Overlay */}
+                  <div className={`absolute -top-1.5 -right-1.5 flex gap-1 transition-all duration-300 z-10 ${
+                    idx === deck.currentPageIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto'
+                  }`}>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setEditingPageIndex(idx); }}
+                      className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-500 transition-colors"
+                      title="Configurar Página"
+                    >
+                      <Icons.Edit3 size={10} />
+                    </button>
+                    {deck.pages.length > 1 && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); removePage(idx); }}
+                        className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-500 transition-colors"
+                        title="Excluir"
+                      >
+                        <Icons.X size={10} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              <div className="w-[1px] h-10 bg-white/10 mx-2" />
+
+              <button 
+                onClick={addPage}
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-[22px] border border-dashed border-white/20 text-gray-600 hover:text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center active:scale-90"
+                title="Nova Página"
+              >
+                <Icons.Plus className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+
+              <button 
+                onClick={() => setIsGlobalSettingsOpen(true)}
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-[22px] bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-zinc-800 transition-all flex items-center justify-center active:scale-90"
+                title="Configurações Gerais"
+              >
+                <Icons.Settings className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+            </div>
+          </div>
+        </nav>
       </div>
 
       {/* Modals */}
@@ -681,6 +921,10 @@ export default function App() {
           obsStatus={obsStatus}
           onSave={handleGlobalSettingsSave}
           onDisconnectObs={handleObsDisconnect}
+          profiles={profiles}
+          onSwitchProfile={switchProfile}
+          onCreateProfile={createProfile}
+          onDeleteProfile={deleteProfile}
           onClose={() => setIsGlobalSettingsOpen(false)}
         />
       )}

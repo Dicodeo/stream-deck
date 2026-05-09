@@ -5,13 +5,13 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-@layer base {
-  html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv02", "cv03", "cv04", "ss01";
-    background-color: #000;
-  }
+body {
+  @apply bg-[#050505] text-[#e0e0e0] antialiased selection:bg-cyan-500/30 font-sans;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 243, 255, 0.05) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, rgba(188, 19, 254, 0.05) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, rgba(0, 243, 255, 0.05) 0, transparent 50%);
+  background-attachment: fixed;
 }
 
 @layer utilities {
@@ -21,5 +21,15 @@
   }
   .no-scrollbar::-webkit-scrollbar, .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+  .drop-shadow-glow-blue {
+    filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.6));
+  }
+  .drop-shadow-glow-purple {
+    filter: drop-shadow(0 0 8px rgba(188, 19, 254, 0.6));
+  }
+  .bg-matte-black {
+    background-color: #080808;
+    background-image: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
   }
 }

@@ -34,6 +34,8 @@ export interface PageState {
 }
 
 export interface DeckState {
+  id: string; // Unique ID for the profile/deck
+  name: string; // Name of the profile
   pages: PageState[];
   currentPageIndex: number;
   rows: number;
@@ -41,4 +43,13 @@ export interface DeckState {
   orientation?: 'auto' | 'portrait' | 'landscape';
   fullscreen?: boolean;
   obsConfig?: ObsConfig;
+  audioEnabled?: boolean;
+  audioVolume?: number;
+  lastUpdated?: number;
+}
+
+export interface AppConfig {
+  activeProfileId: string;
+  profiles: DeckState[];
+  isOfflineModePreferred?: boolean;
 }

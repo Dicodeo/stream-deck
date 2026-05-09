@@ -287,14 +287,14 @@ export const KeyConfigModal: React.FC<KeyConfigModalProps> = ({ button, onSave, 
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex justify-between">
                 Tamanho da Fonte
-                <span className="text-blue-400">{formData.fontSize || 10}px</span>
+                <span className="text-blue-400">{formData.fontSize || 12}px</span>
               </label>
               <input
                 type="range"
-                min="6"
+                min="8"
                 max="24"
                 step="1"
-                value={formData.fontSize || 10}
+                value={formData.fontSize || 12}
                 onChange={(e) => setFormData({ ...formData, fontSize: parseInt(e.target.value) })}
                 className="w-full h-2 bg-black/30 rounded-lg appearance-none cursor-pointer accent-blue-500 mb-2"
               />

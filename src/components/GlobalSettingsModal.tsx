@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import * as Icons from 'lucide-react';
 import { Logo } from './Logo';
 import { QRScanner } from './QRScanner';
@@ -9,20 +10,60 @@ interface GlobalSettingsModalProps {
   deck: DeckState;
   logs?: string | null;
   obsStatus: 'disconnected' | 'connecting' | 'connected';
-  onSave: (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape', fullscreen?: boolean) => void;
+  profiles: DeckState[];
+  onSwitchProfile: (id: string) => void;
+  onCreateProfile: (name: string) => void;
+  onDeleteProfile: (id: string) => void;
+  onSave: (rows: number, cols: number, obsConfig?: ObsConfig, orientation?: 'auto' | 'portrait' | 'landscape', fullscreen?: boolean, audioEnabled?: boolean, audioVolume?: number) => void;
   onDisconnectObs: () => void;
   onClose: () => void;
 }
 
-export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, logs, obsStatus, onSave, onDisconnectObs, onClose }) => {
+export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ 
+  deck, logs, obsStatus, profiles, onSwitchProfile, onCreateProfile, onDeleteProfile, onSave, onDisconnectObs, onClose 
+}) => {
   const [rows, setRows] = useState(deck.rows);
   const [cols, setCols] = useState(deck.cols);
   const [obsAddress, setObsAddress] = useState(deck.obsConfig?.address || 'ws://127.0.0.1:4455');
   const [obsPassword, setObsPassword] = useState(deck.obsConfig?.password || '');
   const [orientation, setOrientation] = useState<'auto' | 'portrait' | 'landscape'>(deck.orientation || 'auto');
   const [fullscreen, setFullscreen] = useState(deck.fullscreen || false);
+  const [audioEnabled, setAudioEnabled] = useState(deck.audioEnabled !== false);
+  const [audioVolume, setAudioVolume] = useState(deck.audioVolume || 0.3);
   const [showResetSuccess, setShowResetSuccess] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+
+  const handleExport = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", `deckflow-profile-${deck.name.toLowerCase().replace(/\s/g, '-')}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          const parsed = JSON.parse(content);
+          if (parsed.pages && parsed.rows) {
+            onCreateProfile(parsed.name || 'Importado');
+            onSave(parsed.rows, parsed.cols, parsed.obsConfig, parsed.orientation, parsed.fullscreen);
+          }
+        } catch (error) {
+          alert('Arquivo inválido.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -97,6 +138,130 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
         </div>
 
         <div className="p-6 space-y-8 overflow-y-auto no-scrollbar">
+          {/* Profile Management Section */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.2em]">Perfis (Modo Off-line)</h3>
+              <div className="flex gap-2">
+                <label className="cursor-pointer text-[9px] font-black text-blue-400 px-2 py-1 bg-blue-500/10 rounded-md uppercase tracking-wider hover:bg-blue-500/20 transition-all flex items-center gap-1">
+                  <Icons.Upload size={10} />
+                  Importar
+                  <input type="file" className="hidden" accept=".json" onChange={handleImport} />
+                </label>
+                <button 
+                  onClick={handleExport}
+                  className="text-[9px] font-black text-blue-400 px-2 py-1 bg-blue-500/10 rounded-md uppercase tracking-wider hover:bg-blue-500/20 transition-all flex items-center gap-1"
+                >
+                  <Icons.Download size={10} />
+                  Exportar
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-2">
+                {profiles.map(p => (
+                  <div key={p.id} className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${deck.id === p.id ? 'bg-blue-600/10 border-blue-500/40' : 'bg-black/20 border-white/5'}`}>
+                    <button 
+                      onClick={() => onSwitchProfile(p.id)}
+                      className="flex-1 flex flex-col items-start px-2"
+                    >
+                      <span className={`text-[11px] font-bold ${deck.id === p.id ? 'text-white' : 'text-gray-400'}`}>{p.name}</span>
+                      <span className="text-[8px] text-gray-600 uppercase tracking-wider">{p.pages.length} Páginas • {p.rows}x{p.cols}</span>
+                    </button>
+                    {profiles.length > 1 && (
+                      <button 
+                        onClick={() => {
+                          setConfirmConfig({
+                            isOpen: true,
+                            title: 'Excluir Perfil?',
+                            message: `Deseja realmente excluir o perfil "${p.name}"?`,
+                            onConfirm: () => {
+                              onDeleteProfile(p.id);
+                              setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                            }
+                          });
+                        }}
+                        className="p-2 text-gray-600 hover:text-red-500"
+                      >
+                        <Icons.Trash size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {isCreatingProfile ? (
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    autoFocus
+                    placeholder="Nome do perfil..."
+                    value={newProfileName}
+                    onChange={(e) => setNewProfileName(e.target.value)}
+                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        onCreateProfile(newProfileName);
+                        setIsCreatingProfile(false);
+                        setNewProfileName('');
+                      }
+                    }}
+                  />
+                  <button onClick={() => setIsCreatingProfile(false)} className="p-2 text-gray-500 hover:text-white"><Icons.X size={18}/></button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setIsCreatingProfile(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-white/10 rounded-xl text-gray-500 hover:text-blue-400 hover:border-blue-500/30 transition-all text-[10px] font-bold uppercase tracking-widest"
+                >
+                  <Icons.Plus size={14} />
+                  Novo Perfil
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Audio Feedback Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.2em]">Interação e Som</h3>
+            <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-white">Sons de Interface</span>
+                  <span className="text-[8px] text-gray-500 uppercase tracking-widest">Feedback sonoro ao clicar</span>
+                </div>
+                <button 
+                  onClick={() => setAudioEnabled(!audioEnabled)}
+                  className={`w-12 h-6 rounded-full relative transition-colors ${audioEnabled ? 'bg-blue-600' : 'bg-zinc-800'}`}
+                >
+                  <motion.div 
+                    animate={{ x: audioEnabled ? 26 : 2 }}
+                    className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-md"
+                  />
+                </button>
+              </div>
+
+              {audioEnabled && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                    <span>Volume</span>
+                    <span>{Math.round(audioVolume * 100)}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="1" 
+                    step="0.05"
+                    value={audioVolume}
+                    onChange={(e) => setAudioVolume(parseFloat(e.target.value))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Brand Identity */}
           <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-blue-600/10 to-transparent rounded-[32px] border border-blue-500/10 mb-2 shadow-inner">
             <Logo size="lg" className="mb-4" />
@@ -296,7 +461,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ deck, 
 
         <div className="p-6 bg-[#252525] border-t border-white/5 flex gap-3">
           <button
-            onClick={() => onSave(rows, cols, { address: obsAddress, password: obsPassword, connected: false }, orientation, fullscreen)}
+            onClick={() => onSave(rows, cols, { address: obsAddress, password: obsPassword }, orientation, fullscreen, audioEnabled, audioVolume)}
             className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest"
           >
             Salvar Tudo
