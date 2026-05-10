@@ -162,6 +162,15 @@ export default function App() {
     const timer = setTimeout(() => setIsLoading(false), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Real-time clock update
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -814,9 +823,9 @@ export default function App() {
         </main>
 
         {/* Floating Bottom Navigation Dock */}
-        <nav className="fixed bottom-2 left-1/2 -translate-x-1/2 z-50 w-full max-w-fit px-2 sm:px-4 pointer-events-none">
-          <div className="bg-[#080808]/90 backdrop-blur-3xl border border-white/10 p-1.5 sm:p-2 rounded-2xl sm:rounded-[28px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] flex items-center gap-2 pointer-events-auto">
-            <div className="flex items-center gap-1 sm:gap-2 px-1 max-w-[90vw] overflow-x-auto no-scrollbar py-1">
+        <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-fit px-4 sm:px-8 pointer-events-none">
+          <div className="bg-[#080808]/90 backdrop-blur-3xl border border-white/10 p-2 sm:p-3 rounded-2xl sm:rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.9)] flex items-center gap-4 pointer-events-auto">
+            <div className="flex items-center gap-2 sm:gap-4 px-2 max-w-[95vw] overflow-x-auto no-scrollbar py-1">
               {deck.pages.map((page, idx) => (
                 <div key={page.id} className="relative group shrink-0">
                   <motion.button
@@ -824,19 +833,19 @@ export default function App() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => saveConfig({ ...deck, currentPageIndex: idx })}
                     onDoubleClick={() => setEditingPageIndex(idx)}
-                    className={`relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl sm:rounded-[24px] md:rounded-[28px] flex flex-col items-center justify-center gap-1.5 transition-all border duration-500 ${
+                    className={`relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-lg sm:rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 transition-all border duration-500 overflow-hidden ${
                       idx === deck.currentPageIndex 
-                        ? 'border-[#00f3ff]/40 text-white shadow-[0_0_25px_rgba(0,243,255,0.25)] bg-[#00f3ff]/10' 
+                        ? 'border-[#00f3ff]/40 text-white bg-[#00f3ff]/10' 
                         : 'border-white/5 text-gray-500/50 hover:text-gray-300 hover:border-white/10 hover:bg-white/5'
                     }`}
                   >
                     <PageIcon 
                       page={page} 
-                      size={28}
+                      size={24}
                       className={idx === deck.currentPageIndex ? 'text-[#00f3ff] drop-shadow-glow-blue scale-110' : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80'} 
                     />
                     <span 
-                      className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] truncate w-full px-2 text-center transition-opacity duration-300 ${idx === deck.currentPageIndex ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-40'}`}
+                      className={`text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.1em] truncate w-full px-2 text-center transition-opacity duration-300 ${idx === deck.currentPageIndex ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-40'}`}
                     >
                       {page.name}
                     </span>
@@ -844,7 +853,7 @@ export default function App() {
                     {idx === deck.currentPageIndex && (
                       <motion.div 
                         layoutId="activeTabIndicator"
-                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-1.5 rounded-full shadow-[0_0_15px_rgba(0,243,255,1)]" 
+                        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-1 rounded-t-full shadow-[0_0_10px_rgba(0,243,255,0.8)]" 
                         style={{ backgroundColor: page.bgColor || '#00f3ff' }}
                       />
                     )}
@@ -874,22 +883,22 @@ export default function App() {
                 </div>
               ))}
               
-              <div className="w-[1px] h-10 bg-white/10 mx-2" />
+              <div className="w-[1px] h-10 bg-white/10 mx-4 md:mx-6" />
 
               <button 
                 onClick={addPage}
-                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-[22px] border border-dashed border-white/20 text-gray-600 hover:text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center active:scale-90"
+                className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg sm:rounded-xl border border-dashed border-white/20 text-gray-600 hover:text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center active:scale-90"
                 title="Nova Página"
               >
-                <Icons.Plus className="w-5 h-5 md:w-6 md:h-6" />
+                <Icons.Plus className="w-4 h-4 md:w-5 md:h-5" />
               </button>
 
               <button 
                 onClick={() => setIsGlobalSettingsOpen(true)}
-                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-[22px] bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-zinc-800 transition-all flex items-center justify-center active:scale-90"
+                className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg sm:rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-zinc-800 transition-all flex items-center justify-center active:scale-90"
                 title="Configurações Gerais"
               >
-                <Icons.Settings className="w-5 h-5 md:w-6 md:h-6" />
+                <Icons.Settings className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
           </div>
