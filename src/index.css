@@ -5,6 +5,10 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+html, body {
+  overscroll-behavior: none;
+}
+
 body {
   @apply bg-[#050505] text-[#e0e0e0] antialiased selection:bg-cyan-500/30 font-sans;
   background-image: 
@@ -12,6 +16,7 @@ body {
     radial-gradient(at 50% 0%, rgba(188, 19, 254, 0.05) 0, transparent 50%), 
     radial-gradient(at 100% 0%, rgba(0, 243, 255, 0.05) 0, transparent 50%);
   background-attachment: fixed;
+  overflow: hidden;
 }
 
 @layer utilities {

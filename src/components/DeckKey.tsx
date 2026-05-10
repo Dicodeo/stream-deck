@@ -39,7 +39,7 @@ export const DeckKey = memo<DeckKeyProps>(({ button, onPress, onConfig }) => {
       style={style}
       {...attributes}
       {...listeners}
-      className="relative group w-full aspect-[1.3/1] touch-none"
+      className="relative group w-full aspect-[1.3/1]"
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.92 }}
     >

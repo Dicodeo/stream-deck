@@ -775,7 +775,7 @@ export default function App() {
                         duration: 0.3, 
                         ease: [0.16, 1, 0.3, 1]
                       }}
-                      className={`grid gap-1.5 sm:gap-2 md:gap-4 mx-auto w-full h-full max-h-full items-center justify-center content-center no-scrollbar overflow-auto p-2 sm:p-4 md:p-8 will-change-transform ${
+                      className={`grid gap-1.5 sm:gap-2 md:gap-4 mx-auto w-full h-full max-h-full items-center justify-center content-center no-scrollbar overflow-auto p-2 sm:p-4 md:p-8 will-change-transform overscroll-contain touch-pan-x touch-pan-y ${
                         deck.orientation === 'portrait' ? 'max-w-[480px]' : 
                         deck.orientation === 'landscape' ? 'max-w-none' : ''
                       }`}
